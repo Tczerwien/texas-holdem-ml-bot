@@ -1,0 +1,30 @@
+[project]
+name = "texas-holdem-ml-bot"
+version = "0.0.1"
+description = "Modular, reproducible Texas Hold’em poker bot built with ML."
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10,<3.12"
+
+[project.dependencies]
+numpy = "*"
+pandas = "*"
+scikit-learn = "*"
+matplotlib = "*"
+jupyter = "*"
+pydantic = "*"
+hydra-core = "*"
+joblib = "*"
+
+[project.optional-dependencies.dev]
+pytest = "*"
+pytest-cov = "*"
+black = "*"
+ruff = "*"
+mypy = "*"
+pre-commit = "*"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
