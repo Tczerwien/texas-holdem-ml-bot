@@ -2,29 +2,41 @@
 name = "texas-holdem-ml-bot"
 version = "0.0.1"
 description = "Modular, reproducible Texas Hold’em poker bot built with ML."
-authors = ["Your Name <you@example.com>"]
+authors = [{ name = "Thomas C", email = "tczerwien03@gmail.com" }]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 requires-python = ">=3.10,<3.12"
 
-[project.dependencies]
-numpy = "*"
-pandas = "*"
-scikit-learn = "*"
-matplotlib = "*"
-jupyter = "*"
-pydantic = "*"
-hydra-core = "*"
-joblib = "*"
+# PEP 621: dependencies must be an array of PEP 508 strings
+dependencies = [
+  "numpy",
+  "pandas",
+  "scikit-learn",
+  "matplotlib",
+  "jupyter",
+  "pydantic",
+  "hydra-core",
+  "joblib"
+]
 
-[project.optional-dependencies.dev]
-pytest = "*"
-pytest-cov = "*"
-black = "*"
-ruff = "*"
-mypy = "*"
-pre-commit = "*"
+# PEP 621: optional-dependencies table mapping extras -> arrays
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+  "black",
+  "ruff",
+  "mypy",
+  "pre-commit"
+]
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["texas_holdem_ml_bot*"]
