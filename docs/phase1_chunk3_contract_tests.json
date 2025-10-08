@@ -1,0 +1,129 @@
+{
+  "chunk_id": "1.3",
+  "title": "Add Contract Tests - Game Rules Invariants",
+  "priority": "HIGH",
+  "estimated_time": "1-2 hours",
+  "current_state": {
+    "status": "Existing tests verify correctness but don't test game rule contracts",
+    "roadmap_requirement": "Unit tests: straights incl. wheel, flushes, full houses, board plays, kickers"
+  },
+  "objectives": [
+    "Add contract tests that verify game rules are never violated",
+    "Test edge cases and invariants mentioned in roadmap",
+    "Ensure evaluation respects poker fundamentals"
+  ],
+  "contract_categories": {
+    "hand_ranking_contracts": {
+      "description": "Verify hand ranking hierarchy is always respected",
+      "tests": [
+        "Royal flush always beats everything",
+        "Any straight flush beats any four of a kind",
+        "Board plays correctly when board is best hand",
+        "No hand can beat itself"
+      ]
+    },
+    "kicker_contracts": {
+      "description": "Verify kicker logic is always correct",
+      "tests": [
+        "Higher kicker wins with same pair/trips/etc",
+        "All 5 cards matter in flush/high-card",
+        "Kickers ordered correctly (high to low)"
+      ]
+    },
+    "wheel_contracts": {
+      "description": "Verify A-2-3-4-5 special handling",
+      "tests": [
+        "Wheel (A-2-3-4-5) is valid straight",
+        "Wheel is lowest straight (5-high, not Ace-high)",
+        "Wheel straight flush beats quads but loses to 6-high SF",
+        "Ace can be high OR low but not both (no wrap-around)"
+      ]
+    },
+    "evaluation_consistency": {
+      "description": "Verify evaluation is consistent and deterministic",
+      "tests": [
+        "Same 5 cards always evaluate to same result",
+        "Card order doesn't matter (same hand different order)",
+        "Evaluation is deterministic (no randomness)"
+      ]
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "1.3.1",
+      "title": "Create contract test file",
+      "details": [
+        "Create tests/engine/test_contracts.py",
+        "Document what contract tests are in docstring",
+        "Organize by contract category"
+      ],
+      "deliverable": "tests/engine/test_contracts.py"
+    },
+    {
+      "task_id": "1.3.2",
+      "title": "Implement hand ranking contracts",
+      "details": [
+        "Test: Evaluate all 9 hand types, verify ranking order",
+        "Test: Board plays when community cards are best",
+        "Test: Transitivity (if A>B and B>C, then A>C)"
+      ],
+      "deliverable": "TestHandRankingContracts class with 5+ tests"
+    },
+    {
+      "task_id": "1.3.3",
+      "title": "Implement kicker contracts",
+      "details": [
+        "Test: Same hand type, kickers break tie correctly",
+        "Test: Kicker count is correct for each hand type",
+        "Test: All kickers used when needed (5 cards for flush)"
+      ],
+      "deliverable": "TestKickerContracts class with 5+ tests"
+    },
+    {
+      "task_id": "1.3.4",
+      "title": "Implement wheel contracts",
+      "details": [
+        "Test: Wheel vs 6-high straight (wheel loses)",
+        "Test: Wheel vs King-high straight (wheel loses)",
+        "Test: Broadway (A-K-Q-J-10) vs wheel (broadway wins)",
+        "Test: Ace cannot wrap (K-A-2-3-4 is NOT a straight)"
+      ],
+      "deliverable": "TestWheelContracts class with 4+ tests"
+    },
+    {
+      "task_id": "1.3.5",
+      "title": "Implement consistency contracts",
+      "details": [
+        "Test: Shuffle cards, evaluate - same result",
+        "Test: Multiple evaluations - deterministic",
+        "Test: 7-card evaluation finds best 5"
+      ],
+      "deliverable": "TestConsistencyContracts class with 3+ tests"
+    }
+  ],
+  "example_contract_tests": {
+    "test_wheel_is_lowest_straight": {
+      "description": "Verify wheel loses to 6-high straight",
+      "code": "def test_wheel_loses_to_six_high_straight():\n    wheel = [Card(14,'♠'), Card(5,'♥'), Card(4,'♦'), Card(3,'♣'), Card(2,'♠')]\n    six_high = [Card(6,'♠'), Card(5,'♥'), Card(4,'♦'), Card(3,'♣'), Card(2,'♠')]\n    \n    wheel_value = evaluate_hand(wheel)\n    six_high_value = evaluate_hand(six_high)\n    \n    # Both straights\n    assert wheel_value[0] == STRAIGHT\n    assert six_high_value[0] == STRAIGHT\n    \n    # But 6-high beats wheel\n    assert six_high_value > wheel_value\n    assert six_high_value[1] == (6,)  # High card is 6\n    assert wheel_value[1] == (5,)      # High card is 5"
+    },
+    "test_board_plays_correctly": {
+      "description": "When board contains royal flush, any hole cards result in royal flush",
+      "code": "def test_board_royal_flush_plays_for_all():\n    board = [Card(14,'♠'), Card(13,'♠'), Card(12,'♠'), Card(11,'♠'), Card(10,'♠')]\n    \n    # Add random hole cards\n    hand1 = board + [Card(2,'♥'), Card(3,'♦')]\n    hand2 = board + [Card(9,'♣'), Card(8,'♣')]\n    \n    val1 = evaluate_hand(hand1)\n    val2 = evaluate_hand(hand2)\n    \n    # Both should be royal flush\n    assert val1 == (ROYAL_FLUSH, (14,))\n    assert val2 == (ROYAL_FLUSH, (14,))\n    assert val1 == val2  # Same hand"
+    },
+    "test_no_wrap_around_straight": {
+      "description": "K-A-2-3-4 is not a valid straight",
+      "code": "def test_no_wrap_around_straight():\n    cards = [Card(13,'♠'), Card(14,'♥'), Card(2,'♦'), Card(3,'♣'), Card(4,'♠')]\n    category, _ = evaluate_hand(cards)\n    \n    # Should be high card or pair, NOT straight\n    assert category != STRAIGHT\n    assert category == HIGH_CARD"
+    }
+  },
+  "acceptance_criteria": [
+    "At least 20 new contract tests added",
+    "All contract categories covered",
+    "Tests verify game rules, not just implementation",
+    "All contract tests pass",
+    "Contract tests documented with clear docstrings"
+  ],
+  "files_to_create": [
+    "tests/engine/test_contracts.py"
+  ],
+  "validation_command": "pytest tests/engine/test_contracts.py -v"
+}
