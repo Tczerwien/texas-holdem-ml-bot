@@ -1,0 +1,81 @@
+{
+  "chunk_id": "1.2",
+  "title": "Achieve 100% Test Coverage",
+  "priority": "MEDIUM",
+  "estimated_time": "30 minutes",
+  "current_state": {
+    "overall_coverage": "98%",
+    "cards_py": "98% (missing line 43)",
+    "evaluator_py": "99% (missing line 175)",
+    "game_state_py": "100%",
+    "rules_py": "89% (missing lines 55-56)"
+  },
+  "objectives": [
+    "Reach 100% coverage on all engine modules",
+    "Add tests for edge cases currently not covered"
+  ],
+  "missing_coverage_analysis": {
+    "cards_py_line_43": {
+      "location": "Deck.__repr__ or similar",
+      "reason": "Likely a fallback case or edge condition",
+      "fix": "Add test that triggers this line"
+    },
+    "evaluator_py_line_175": {
+      "location": "Likely in _evaluate_best_5",
+      "reason": "Edge case in 7-card combinations",
+      "fix": "Review line, add specific test case"
+    },
+    "rules_py_lines_55_56": {
+      "location": "Likely error handling in next_street or get_cards_to_deal",
+      "reason": "Invalid input not tested",
+      "fix": "Add test for invalid Street values"
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "1.2.1",
+      "title": "Identify uncovered lines",
+      "details": [
+        "Run: pytest tests/engine --cov=src/texas_holdem_ml_bot/engine --cov-report=html",
+        "Open htmlcov/index.html in browser",
+        "Click on each file to see highlighted uncovered lines"
+      ],
+      "deliverable": "List of specific uncovered lines with context"
+    },
+    {
+      "task_id": "1.2.2",
+      "title": "Write tests for uncovered lines",
+      "details": [
+        "For each uncovered line, determine what input would trigger it",
+        "Write minimal test case to exercise that code path",
+        "Ensure test is meaningful, not just coverage padding"
+      ],
+      "deliverable": "New test methods in appropriate test files"
+    },
+    {
+      "task_id": "1.2.3",
+      "title": "Verify 100% coverage",
+      "details": [
+        "Re-run coverage report",
+        "Confirm all modules at 100%",
+        "Check that new tests actually test the intended behavior"
+      ],
+      "deliverable": "Coverage report showing 100%"
+    }
+  ],
+  "example_test_patterns": {
+    "testing_error_handling": "def test_invalid_street_value():\n    with pytest.raises(ValueError):\n        next_street('invalid')",
+    "testing_repr_methods": "def test_deck_repr_edge_case():\n    deck = Deck(cards=[])\n    repr_str = repr(deck)\n    assert '0 cards' in repr_str"
+  },
+  "acceptance_criteria": [
+    "All engine modules show 100% coverage in pytest-cov output",
+    "No \"missing\" lines in coverage report",
+    "All new tests are meaningful and test actual behavior"
+  ],
+  "files_to_modify": [
+    "tests/engine/test_cards.py (if needed)",
+    "tests/engine/test_evaluator.py (if needed)",
+    "tests/engine/test_rules.py (likely)"
+  ],
+  "validation_command": "pytest tests/engine --cov=src/texas_holdem_ml_bot/engine --cov-report=term-missing --cov-fail-under=100"
+}
