@@ -7,7 +7,7 @@ readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10,<3.12"
 
-# PEP 621: dependencies must be an array of PEP 508 strings
+# Runtime dependencies (PEP 621: array of PEP 508 strings)
 dependencies = [
   "numpy",
   "pandas",
@@ -19,7 +19,6 @@ dependencies = [
   "joblib"
 ]
 
-# PEP 621: optional-dependencies table mapping extras -> arrays
 [project.optional-dependencies]
 dev = [
   "pytest",
@@ -27,7 +26,8 @@ dev = [
   "black",
   "ruff",
   "mypy",
-  "pre-commit"
+  "pre-commit",
+  "isort"
 ]
 
 [build-system]
@@ -40,3 +40,31 @@ package-dir = { "" = "src" }
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["texas_holdem_ml_bot*"]
+
+# --- Tooling config (keeps hooks and IDEs consistent) ---
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["texas_holdem_ml_bot"]
+src_paths = ["src", "tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+# Enable/disable rules here if needed, but defaults are fine with pre-commit hook.
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+disallow_untyped_defs = false
+plugins = []
+mypy_path = "src"

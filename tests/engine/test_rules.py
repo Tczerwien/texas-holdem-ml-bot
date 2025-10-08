@@ -1,8 +1,11 @@
 """Tests for rules module."""
 
-
-from texas_holdem_ml_bot.engine.rules import (BLIND_STRUCTURE, Street,
-                                              get_cards_to_deal, next_street)
+from texas_holdem_ml_bot.engine.rules import (
+    BLIND_STRUCTURE,
+    Street,
+    get_cards_to_deal,
+    next_street,
+)
 
 
 class TestStreet:

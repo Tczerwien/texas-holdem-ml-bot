@@ -2,8 +2,14 @@
 
 import pytest
 
-from texas_holdem_ml_bot.engine.cards import (RANKS, SUITS, Action, Card, Deck,
-                                              PlayerAction)
+from texas_holdem_ml_bot.engine.cards import (
+    RANKS,
+    SUITS,
+    Action,
+    Card,
+    Deck,
+    PlayerAction,
+)
 
 
 class TestCard:
@@ -28,7 +34,7 @@ class TestCard:
         """Test that cards are immutable."""
         card = Card(14, "♠")
         with pytest.raises(AttributeError):
-            card.rank = 13  # type: ignore
+            card.rank = 13
 
     def test_invalid_rank(self):
         """Test that invalid ranks raise ValueError."""
@@ -196,4 +202,4 @@ class TestPlayerAction:
         """Test that actions are immutable."""
         action = PlayerAction(Action.BET, 100)
         with pytest.raises(AttributeError):
-            action.amount = 200  # type: ignore
+            action.amount = 200

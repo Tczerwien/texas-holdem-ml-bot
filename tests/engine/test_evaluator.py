@@ -6,12 +6,19 @@ Tests all hand types, edge cases, kickers, and the wheel straight.
 import pytest
 
 from texas_holdem_ml_bot.engine.cards import Card, Deck
-from texas_holdem_ml_bot.engine.evaluator import (FLUSH, FOUR_OF_KIND,
-                                                  FULL_HOUSE, HIGH_CARD,
-                                                  ONE_PAIR, ROYAL_FLUSH,
-                                                  STRAIGHT, STRAIGHT_FLUSH,
-                                                  THREE_OF_KIND, TWO_PAIR,
-                                                  evaluate_hand)
+from texas_holdem_ml_bot.engine.evaluator import (
+    FLUSH,
+    FOUR_OF_KIND,
+    FULL_HOUSE,
+    HIGH_CARD,
+    ONE_PAIR,
+    ROYAL_FLUSH,
+    STRAIGHT,
+    STRAIGHT_FLUSH,
+    THREE_OF_KIND,
+    TWO_PAIR,
+    evaluate_hand,
+)
 
 
 class TestRoyalFlush:
