@@ -19,8 +19,7 @@ Hand categories (higher is better):
 from __future__ import annotations
 
 from collections import Counter
-from itertools import combinations
-from typing import List, Tuple
+from typing import List, Sequence, Set, Tuple
 
 from .cards import Card
 
@@ -39,6 +38,17 @@ THREE_OF_KIND = 2
 TWO_PAIR = 1
 ONE_PAIR = 0
 HIGH_CARD = -1
+
+
+STRAIGHT_BITMASKS = [0] * 15
+for high in range(5, 15):
+    mask = 0
+    for rank in range(high - 4, high + 1):
+        if rank == 1:
+            mask |= 1 << 1
+        else:
+            mask |= 1 << rank
+    STRAIGHT_BITMASKS[high] = mask
 
 
 def evaluate_hand(cards: List[Card]) -> Tuple[int, Tuple[int, ...]]:
@@ -64,10 +74,10 @@ def evaluate_hand(cards: List[Card]) -> Tuple[int, Tuple[int, ...]]:
         raise ValueError(f"Must evaluate 5-7 cards, got {len(cards)}")
 
     # For 6-7 cards, find best 5-card hand
-    if len(cards) > 5:
-        return _evaluate_best_5(cards)
+    if len(cards) == 5:
+        return _evaluate_5(cards)
 
-    return _evaluate_5(cards)
+    return _evaluate_best_5_fast(cards)
 
 
 def _evaluate_5(cards: List[Card]) -> Tuple[int, Tuple[int, ...]]:
@@ -87,12 +97,10 @@ def _evaluate_5(cards: List[Card]) -> Tuple[int, Tuple[int, ...]]:
     # Check for straight (including wheel)
     is_straight, straight_high = _check_straight(ranks)
 
-    # Royal flush: A-K-Q-J-10 of same suit
-    if is_flush and is_straight and straight_high == 14:
-        return (ROYAL_FLUSH, (14,))
-
-    # Straight flush
+    # Royal or straight flushes take priority over lower-ranked categories
     if is_flush and is_straight:
+        if straight_high == 14:
+            return (ROYAL_FLUSH, (14,))
         return (STRAIGHT_FLUSH, (straight_high,))
 
     # Four of a kind
@@ -119,20 +127,22 @@ def _evaluate_5(cards: List[Card]) -> Tuple[int, Tuple[int, ...]]:
     # Three of a kind
     if counts_sorted[0][1] == 3:
         trips_rank = counts_sorted[0][0]
-        kickers = tuple(sorted([r for r, c in counts_sorted[1:]], reverse=True))
+        remaining = [r for r, c in counts_sorted[1:]]
+        kickers = tuple(sorted(remaining, reverse=True))
         return (THREE_OF_KIND, (trips_rank,) + kickers)
 
     # Two pair
     if counts_sorted[0][1] == 2 and counts_sorted[1][1] == 2:
-        high_pair = max(counts_sorted[0][0], counts_sorted[1][0])
-        low_pair = min(counts_sorted[0][0], counts_sorted[1][0])
+        pair_a, pair_b = counts_sorted[0][0], counts_sorted[1][0]
+        high_pair, low_pair = max(pair_a, pair_b), min(pair_a, pair_b)
         kicker = counts_sorted[2][0]
         return (TWO_PAIR, (high_pair, low_pair, kicker))
 
     # One pair
     if counts_sorted[0][1] == 2:
         pair_rank = counts_sorted[0][0]
-        kickers = tuple(sorted([r for r, c in counts_sorted[1:]], reverse=True))
+        remaining = [r for r, c in counts_sorted[1:]]
+        kickers = tuple(sorted(remaining, reverse=True))
         return (ONE_PAIR, (pair_rank,) + kickers)
 
     # High card
@@ -162,18 +172,116 @@ def _check_straight(ranks: List[int]) -> Tuple[bool, int]:
     return (False, 0)
 
 
-def _evaluate_best_5(cards: List[Card]) -> Tuple[int, Tuple[int, ...]]:
-    """Find the best 5-card hand from 6-7 cards."""
+def _evaluate_best_5_fast(cards: Sequence[Card]) -> Tuple[int, Tuple[int, ...]]:
+    """Evaluate 6-7 card hands without brute-force combinations."""
 
-    best_hand: HandScore = (HIGH_CARD, tuple())
+    rank_counts: list[int] = [0] * 15
+    suit_ranks: dict[str, list[int]] = {"♣": [], "♦": [], "♥": [], "♠": []}
+    suit_masks: dict[str, int] = {"♣": 0, "♦": 0, "♥": 0, "♠": 0}
+    rank_mask: int = 0
 
-    # Check all 5-card combinations
-    for combo in combinations(cards, 5):
-        hand_value = _evaluate_5(list(combo))
-        if hand_value > best_hand:
-            best_hand = hand_value
+    for card in cards:
+        rank_counts[card.rank] += 1
+        suit_ranks[card.suit].append(card.rank)
+        suit_masks[card.suit] |= 1 << card.rank
+        rank_mask |= 1 << card.rank
 
-    return best_hand
+    trip_ranks = [rank for rank in range(14, 1, -1) if rank_counts[rank] >= 3]
+    pair_ranks = [rank for rank in range(14, 1, -1) if rank_counts[rank] >= 2]
+
+    best_flush: Tuple[int, ...] | None = None
+
+    for suit, ranks in suit_ranks.items():
+        if len(ranks) < 5:
+            continue
+
+        mask = suit_masks[suit]
+        straight_high = _highest_straight(mask)
+        if straight_high:
+            if straight_high == 14:
+                return (ROYAL_FLUSH, (14,))
+            return (STRAIGHT_FLUSH, (straight_high,))
+
+        top_five = tuple(sorted(ranks, reverse=True)[:5])
+        if best_flush is None:
+            best_flush = top_five
+        elif top_five > best_flush:
+            best_flush = top_five
+
+    for rank in range(14, 1, -1):
+        if rank_counts[rank] == 4:
+            kicker = _collect_high_cards(rank_counts, {rank}, 1)[0]
+            return (FOUR_OF_KIND, (rank, kicker))
+
+    if trip_ranks:
+        primary_trip = trip_ranks[0]
+        secondary_trip = None
+        if len(trip_ranks) > 1:
+            secondary_trip = trip_ranks[1]
+        else:
+            for pair_rank in pair_ranks:
+                if pair_rank != primary_trip:
+                    secondary_trip = pair_rank
+                    break
+
+        if secondary_trip is not None:
+            return (FULL_HOUSE, (primary_trip, secondary_trip))
+
+    if best_flush is not None:
+        return (FLUSH, best_flush)
+
+    straight_high = _highest_straight(rank_mask)
+    if straight_high:
+        return (STRAIGHT, (straight_high,))
+
+    if trip_ranks:
+        trip = trip_ranks[0]
+        kickers = _collect_high_cards(rank_counts, {trip}, 2)
+        return (THREE_OF_KIND, (trip, *kickers))
+
+    if len(pair_ranks) >= 2:
+        high_pair, low_pair = pair_ranks[0], pair_ranks[1]
+        kicker = _collect_high_cards(rank_counts, {high_pair, low_pair}, 1)[0]
+        return (TWO_PAIR, (high_pair, low_pair, kicker))
+
+    if pair_ranks:
+        pair = pair_ranks[0]
+        kickers = _collect_high_cards(rank_counts, {pair}, 3)
+        return (ONE_PAIR, (pair, *kickers))
+
+    kickers = _collect_high_cards(rank_counts, set(), 5)
+    return (HIGH_CARD, tuple(kickers))
+
+
+def _highest_straight(mask: int) -> int:
+    """Return the highest straight high-card from a rank bitmask."""
+
+    if mask & (1 << 14):
+        mask |= 1 << 1
+
+    for high in range(14, 4, -1):
+        straight_mask = STRAIGHT_BITMASKS[high]
+        if straight_mask and (mask & straight_mask) == straight_mask:
+            return high
+
+    return 0
+
+
+def _collect_high_cards(
+    rank_counts: Sequence[int], exclude: Set[int], needed: int
+) -> List[int]:
+    """Collect the highest ranked cards excluding certain ranks."""
+
+    collected: List[int] = []
+    for rank in range(14, 1, -1):
+        if rank in exclude or rank_counts[rank] == 0:
+            continue
+        count = rank_counts[rank]
+        take = min(count, needed - len(collected))
+        collected.extend([rank] * take)
+        if len(collected) == needed:
+            break
+    return collected
 
 
 # Convenience function matching roadmap naming
