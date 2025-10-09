@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from random import shuffle
+from random import randrange
 from typing import Iterable, List
 
 # Unicode suit symbols
 SUITS = ("♣", "♦", "♥", "♠")
 # Ranks: 2-14 where 11=J, 12=Q, 13=K, 14=A
 RANKS = tuple(range(2, 15))
+
+
+_FULL_DECK: tuple["Card", ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,14 +58,25 @@ class Deck:
         Args:
             cards: Optional iterable of cards. If None, creates full 52-card deck.
         """
+        global _FULL_DECK
+
         if cards is not None:
-            self._cards: List[Card] = list(cards)
+            base_cards = tuple(cards)
         else:
-            self._cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
+            if _FULL_DECK is None:
+                _FULL_DECK = tuple(Card(rank, suit) for suit in SUITS for rank in RANKS)
+            base_cards = _FULL_DECK
+
+        self._base_cards = base_cards
+        self._cards: List[Card] = list(base_cards)
+        self._index = 0
+        self._shuffled = False
 
     def shuffle(self) -> None:
         """Shuffle the deck in place using Fisher-Yates algorithm."""
-        shuffle(self._cards)
+        self._cards = list(self._base_cards)
+        self._shuffled = True
+        self._index = 0
 
     def draw(self, n: int = 1) -> List[Card]:
         """Draw n cards from the top of the deck.
@@ -76,16 +90,26 @@ class Deck:
         Raises:
             ValueError: If n is invalid or deck doesn't have enough cards
         """
-        if not (1 <= n <= len(self._cards)):
+        remaining = len(self._cards) - self._index
+
+        if not (1 <= n <= remaining):
             raise ValueError(
-                f"Cannot draw {n} cards (deck has {len(self._cards)} cards)"
+                f"Cannot draw {n} cards (deck has {remaining} cards remaining)"
             )
-        drawn, self._cards = self._cards[:n], self._cards[n:]
-        return drawn
+        start = self._index
+        end = start + n
+        if self._shuffled:
+            size = len(self._cards)
+            cards_list = self._cards
+            for i in range(start, end):
+                j = randrange(i, size)
+                cards_list[i], cards_list[j] = cards_list[j], cards_list[i]
+        self._index = end
+        return self._cards[start:end]
 
     def __len__(self) -> int:
         """Return number of cards remaining in deck."""
-        return len(self._cards)
+        return len(self._cards) - self._index
 
     def __repr__(self) -> str:
         """Developer-friendly representation."""
