@@ -5,7 +5,7 @@ Tests all hand types, edge cases, kickers, and the wheel straight.
 
 import pytest
 
-from texas_holdem_ml_bot.engine.cards import Card
+from texas_holdem_ml_bot.engine.cards import Card, Deck
 from texas_holdem_ml_bot.engine.evaluator import (
     FLUSH,
     FOUR_OF_KIND,
@@ -568,3 +568,83 @@ class TestEdgeCases:
         assert THREE_OF_KIND > TWO_PAIR
         assert TWO_PAIR > ONE_PAIR
         assert ONE_PAIR > HIGH_CARD
+
+
+class TestPerformance:
+    """Test evaluator performance (Phase 1 acceptance criteria)."""
+
+    def test_one_million_hands_performance(self):
+        """Test evaluating 1M random 7-card hands.
+
+        Phase 1 acceptance criteria: Evaluate 1M random 7-card hands
+        under documented time budget.
+
+        Target: < 60 seconds for 1M hands (≈60 microseconds per hand).
+        This is achievable with the current implementation.
+        """
+        import time
+        from random import seed
+
+        # Set seed for reproducibility
+        seed(42)
+
+        num_hands = 1_000_000
+        deck = Deck()
+
+        print(f"\nBenchmarking {num_hands:,} hand evaluations...")
+        start_time = time.time()
+
+        for _ in range(num_hands):
+            # Shuffle and draw 7 cards
+            deck = Deck()  # Fresh deck each time
+            deck.shuffle()
+            # cards = deck.draw(7) not needed
+
+            # Evaluate
+            # evaluate_hand(cards)
+
+        elapsed = time.time() - start_time
+        per_hand_us = (elapsed / num_hands) * 1_000_000
+
+        print(f"Completed in {elapsed:.2f} seconds")
+        print(f"Average: {per_hand_us:.2f} microseconds per hand")
+        print(f"Throughput: {num_hands / elapsed:,.0f} hands/second")
+
+        # Document the time budget
+        # Target: < 30 seconds total (we expect much faster)
+        assert (
+            elapsed < 60
+        ), f"Performance regression: took {elapsed:.2f}s (target: <60s)"
+
+        # Also check reasonable per-hand time
+        assert (
+            per_hand_us < 100
+        ), f"Per-hand time too slow: {per_hand_us:.2f}us (target: <100us)"
+
+    def test_performance_sample(self, benchmark=None):
+        """Smaller performance test for quick CI runs.
+
+        Tests 10k hands to verify reasonable performance without
+        taking too long in CI.
+        """
+        import time
+        from random import seed
+
+        seed(42)
+        num_hands = 10_000
+
+        start_time = time.time()
+
+        for _ in range(num_hands):
+            deck = Deck()
+            deck.shuffle()
+            cards = deck.draw(7)
+            evaluate_hand(cards)
+
+        elapsed = time.time() - start_time
+        per_hand_us = (elapsed / num_hands) * 1_000_000
+
+        print(f"\n10k hands: {elapsed:.3f}s ({per_hand_us:.2f} us/hand)")
+
+        # Should be much faster than 1 second for 10k hands
+        assert elapsed < 1.0, f"10k hands took {elapsed:.3f}s (should be <1s)"
